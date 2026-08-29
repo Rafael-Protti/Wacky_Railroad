@@ -17,11 +17,11 @@ public class PlayerController : MonoBehaviour
     
     void Start()
     {
-        splines.Add(spline_left); splines.Add(spline_middle); splines.Add(spline_right);
-        splineAnimate = GetComponent<SplineAnimate>();
-        splineAnimate.Container = spline_middle;
-        splineAnimate.Play();
-        splineAnimate.MaxSpeed = speed;
+        // splines.Add(spline_left); splines.Add(spline_middle); splines.Add(spline_right);
+        // splineAnimate = GetComponent<SplineAnimate>();
+        // splineAnimate.Container = spline_middle;
+        // splineAnimate.Play();
+        // splineAnimate.MaxSpeed = speed;
     }
 
     void Update()
