@@ -7,26 +7,31 @@ public class PlayerCollision : MonoBehaviour
         CheckGround(collision);
     }
 
-    void OnTriggerEnter(Collider other)
+    void OnCollisionStay(Collision collision)
     {
-        CheckGhost(other);
+        CheckGround(collision);     
+    }
+
+    void OnCollisionExit(Collision collision)
+    {
+        CheckAir(collision);
     }
 
     void CheckGround(Collision collision)
     {
         if(collision.gameObject.CompareTag("Ground"))
         {
-            GetComponent<LocomotiveMoviment>().isGrounded = true;
+            GetComponent<LocomotiveMoviment>().OnGround();
             Debug.Log("Grounded");
         }
     }
 
-    void CheckGhost(Collider collision)
+    void CheckAir(Collision collision)
     {
-        if(collision.gameObject.CompareTag("Ghost"))
+        if(collision.gameObject.CompareTag("Ground"))
         {
-            GetComponent<LocomotiveMoviment>().ghostCollided = true;
-            Debug.Log("Ghost collided");
+            GetComponent<LocomotiveMoviment>().OnAir();
+            Debug.Log("On air");
         }
     }
 }

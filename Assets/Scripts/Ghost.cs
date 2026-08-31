@@ -5,19 +5,31 @@ public class Ghost : MonoBehaviour
 {
     public SplineAnimate splineAnimate;
 
-    public float speed;
+    float speed = 1;
+    float currentTime;
 
     void Start()
     {
         splineAnimate = GetComponent<SplineAnimate>();
-
-        speed = GameObject.Find("PlayerSetup").GetComponent<PlayerController>().speed;
         splineAnimate.Play();
         splineAnimate.MaxSpeed = speed;
     }
 
-    void Update()
+    public void ChangeSpeed(float speedMultiplier)
     {
+        GetTime();
+        speed *= speedMultiplier;
         splineAnimate.MaxSpeed = speed;
+        SetTime();
+    }
+
+    void GetTime()
+    {
+        currentTime = splineAnimate.NormalizedTime;
+    }
+
+    void SetTime()
+    {
+        splineAnimate.NormalizedTime = currentTime;
     }
 }
