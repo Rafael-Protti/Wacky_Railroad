@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using Unity.VisualScripting;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.Analytics;
 using UnityEngine.Splines;
@@ -21,8 +23,8 @@ public class LocomotiveMoviment : MonoBehaviour
     public float nitroBoost = 2f;
     public float jumpForce = 5f;
     public float fallForce = -5f;
+    public bool isChangingTrack = false; 
     int index = 1;
-    bool isChangingTrack = false; 
     Rigidbody rb;
     LocomotiveResources locomotiveResources;
 
@@ -49,7 +51,10 @@ public class LocomotiveMoviment : MonoBehaviour
         if(isGrounded)
         {
             //Drift
+            if(isDrifting) return;
             isDrifting = true;
+            
+            StartCoroutine("ActivateDrift");
 
             Debug.Log("Drifting");
         }
@@ -70,6 +75,7 @@ public class LocomotiveMoviment : MonoBehaviour
     {
         if(isGrounded) return;
         if(isChangingTrack) return;
+        if(!locomotiveResources.RocketAvaliable()) return;
 
         if(right)
         {
@@ -87,6 +93,8 @@ public class LocomotiveMoviment : MonoBehaviour
         }
 
         locomotiveResources.SetRocketValue(-1f);
+
+        GetComponent<Animator>().SetBool("isTilting", true);
         
         Debug.Log("Target:" + index.ToString());
         StartCoroutine("ChangeTrack");
@@ -106,15 +114,38 @@ public class LocomotiveMoviment : MonoBehaviour
         Debug.Log("Boosting");
     }
 
+    public void Direction(bool right)
+    {
+
+        if (right)
+        {
+            GetComponent<Animator>().SetBool("isLeft", false);
+            GetComponent<Animator>().SetBool("isRight", true);
+        }
+
+        else
+        {
+            GetComponent<Animator>().SetBool("isRight", false);
+            GetComponent<Animator>().SetBool("isLeft", true);
+        }
+
+    }
+
     public void OnGround() // Is invoked in PlayerCollision.cs
     {
         isGrounded = true;
-        locomotiveResources.SetRocketValue(1f);
+        locomotiveResources.SetRocketValue(10);
     }
 
-    public void OnAir() // Is invoked in PlayerCollision.cs
+    void OnAir()
+    {
+        StartCoroutine("SetAir");
+    }
+
+    IEnumerator SetAir()
     {
         isGrounded = false;
+        yield return new WaitForSeconds(1.0f);
         canFall = true;
     }
 
@@ -122,6 +153,10 @@ public class LocomotiveMoviment : MonoBehaviour
     {
         Vector3 newPosition = new Vector3(target.transform.position.x, transform.position.y, target.transform.position.z);
         rb.MovePosition(Vector3.MoveTowards(transform.position, newPosition, speed * nitroBoost * Time.deltaTime));
+
+        // Vector3 newDirection = target.transform.position - transform.position;
+        // newDirection = new Vector3(newDirection.x, 0, newDirection.z);
+        // rb.MoveRotation(Quaternion.LookRotation(Vector3.RotateTowards(transform.forward, newDirection, speed * Time.deltaTime, 0.5f * Time.deltaTime)));
     }
 
     IEnumerator ChangeTrack()
@@ -130,25 +165,49 @@ public class LocomotiveMoviment : MonoBehaviour
 
         target = ghosts[index];
 
-        while(!isGrounded)
+        while(isChangingTrack)
         {
             Debug.Log("Changing Track");
             yield return null;
         }
-        Debug.Log("Changed Track!");
 
-        isChangingTrack = false;
+        GetComponent<Animator>().SetBool("isTilting", false);
+
+        Debug.Log("Changed Track!");
     }
 
     IEnumerator ActivateNitro()
     {
-        yield return new WaitForSecondsRealtime(3);
-
+        
+        while(locomotiveResources.NitroAvaliable())
+        {
+            locomotiveResources.SetNitroValue(-0.1f);
+            yield return new WaitForSeconds(0.2f);
+        }
 
         SetGhostSpeed(1/nitroBoost);
         speed /= nitroBoost;
 
+        yield return locomotiveResources.StartCoroutine("RecoverNitro");
+
         isNitro = false;
+    }
+
+    IEnumerator ActivateDrift()
+    {
+        GetComponent<Animator>().SetBool("isDrifting", true);
+
+        while(locomotiveResources.DriftAvaliable())
+        {
+            locomotiveResources.SetDrifValue(-0.1f);
+            yield return new WaitForSeconds(0.2f);
+        }
+
+        GetComponent<Animator>().SetBool("isDrifting", false);
+
+        yield return locomotiveResources.StartCoroutine("RecoverDrift");
+
+        isDrifting = false;
     }
 
     void SetGhostSpeed(float newSpeed)

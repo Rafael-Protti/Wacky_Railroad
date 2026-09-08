@@ -7,14 +7,9 @@ public class PlayerCollision : MonoBehaviour
         CheckGround(collision);
     }
 
-    void OnCollisionStay(Collision collision)
+    void OnTriggerEnter(Collider other)
     {
-        CheckGround(collision);     
-    }
-
-    void OnCollisionExit(Collision collision)
-    {
-        CheckAir(collision);
+        CheckGhost(other);
     }
 
     void CheckGround(Collision collision)
@@ -26,12 +21,21 @@ public class PlayerCollision : MonoBehaviour
         }
     }
 
-    void CheckAir(Collision collision)
+    // void CheckAir(Collision collision)
+    // {
+    //     if(collision.gameObject.CompareTag("Ground"))
+    //     {
+    //         GetComponent<LocomotiveMoviment>().OnAir();
+    //         Debug.Log("On air");
+    //     }
+    // }
+
+    void CheckGhost(Collider collision)
     {
-        if(collision.gameObject.CompareTag("Ground"))
+        if(collision.gameObject.CompareTag("Ghost"))
         {
-            GetComponent<LocomotiveMoviment>().OnAir();
-            Debug.Log("On air");
+            GetComponent<LocomotiveMoviment>().isChangingTrack = false;
+            Debug.Log("Ghost collided");
         }
     }
 }

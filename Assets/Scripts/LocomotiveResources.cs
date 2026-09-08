@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
@@ -88,5 +89,35 @@ public class LocomotiveResources : MonoBehaviour
     {
         if(rocket == 0) return false;
         return true;
+    }
+
+    public bool DriftAvaliable()
+    {
+        if(drift == 0) return false;
+        return true;
+    }
+
+    public bool NitroAvaliable()
+    {
+        if(nitro == 0) return false;
+        return true;
+    }
+
+    public IEnumerator RecoverDrift()
+    {
+        while(drift != locomotive.drift)
+        {
+             SetDrifValue(0.2f);
+             yield return new WaitForSeconds(0.2f);
+        }
+    }
+
+     public IEnumerator RecoverNitro()
+    {
+        while(nitro != locomotive.nitro)
+        {
+             SetNitroValue(0.2f);
+             yield return new WaitForSeconds(0.2f);
+        }
     }
 }
