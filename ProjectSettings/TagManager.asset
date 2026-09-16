@@ -6,6 +6,10 @@ TagManager:
   tags:
   - Ground
   - Ghost
+  - Low
+  - High
+  - Light
+  - Wall
   layers:
   - Default
   - TransparentFX

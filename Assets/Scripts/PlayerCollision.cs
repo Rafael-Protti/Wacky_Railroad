@@ -9,7 +9,8 @@ public class PlayerCollision : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        CheckGhost(other);
+        GhostCheck(other);
+        CheckObstacles(other);
     }
 
     void CheckGround(Collision collision)
@@ -21,21 +22,41 @@ public class PlayerCollision : MonoBehaviour
         }
     }
 
-    // void CheckAir(Collision collision)
-    // {
-    //     if(collision.gameObject.CompareTag("Ground"))
-    //     {
-    //         GetComponent<LocomotiveMoviment>().OnAir();
-    //         Debug.Log("On air");
-    //     }
-    // }
-
-    void CheckGhost(Collider collision)
+    void GhostCheck(Collider other)
     {
-        if(collision.gameObject.CompareTag("Ghost"))
+        if(other.gameObject.CompareTag("Ghost"))
         {
             GetComponent<LocomotiveMoviment>().isChangingTrack = false;
-            Debug.Log("Ghost collided");
         }
+    }
+
+    void CheckObstacles(Collider other)
+    {
+        if(other.gameObject.CompareTag("Light"))
+        {
+            if(!GetComponent<LocomotiveMoviment>().isDrifting)
+            {
+                CargoDrop();
+            }
+        }
+
+        if(other.gameObject.CompareTag("Low") || other.gameObject.CompareTag("High"))
+        {
+            CargoDrop();
+        }
+
+        if(other.gameObject.CompareTag("Wall"))
+        {
+            if(!GetComponent<LocomotiveMoviment>().isNitro)
+            {
+                CargoDrop();
+            }
+        }
+    }
+
+    void CargoDrop()
+    {
+        GetComponent<LocomotiveResources>().SetCargoValue(-1);
+        Debug.Log("CargoDrop");
     }
 }

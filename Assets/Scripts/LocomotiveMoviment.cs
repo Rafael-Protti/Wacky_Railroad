@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
@@ -16,60 +17,33 @@ public class LocomotiveMoviment : MonoBehaviour
     [HideInInspector]public bool isNitro = false;
     [HideInInspector]public bool isDrifting = false;
     [HideInInspector]public bool canFall = false;
-    public List<Transform> ghosts;
-    Transform target;
-    public float speed = 50f;
+    public List<int> points = new List<int>{-5,0,5};
+    public float speed = 5f;
+    public float acceleration = 5f;
+    public float maxSpeed = 5f;
     public float rocketSpeed = 50f;
     public float nitroBoost = 2f;
     public float jumpForce = 5f;
-    public float fallForce = -5f;
+    public float fallForce = 5f;
+    public float gravityForce = 5f;
     public bool isChangingTrack = false; 
+    public Transform jumpMaxPoint;
+    int direction = -1;
     int index = 1;
     Rigidbody rb;
     LocomotiveResources locomotiveResources;
-    SplineAnimate splineAnimate; 
-    float currentTime;
-    public Transform direction;
-    public List<Transform> splines;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         locomotiveResources = GetComponent<LocomotiveResources>();
-        target = ghosts[1];
-        SetGhostSpeed(speed);
-    }
-
-    void Start()
-    {
-        splineAnimate = transform.parent.GetComponent<SplineAnimate>();
-        splineAnimate.Play();
-        splineAnimate.MaxSpeed = speed;
-    }
-
-        public void ChangeSpeed(float speedMultiplier)
-    {
-        GetTime();
-        speed *= speedMultiplier;
-        splineAnimate.MaxSpeed = speed;
-        SetTime();
-    }
-
-    void GetTime()
-    {
-        currentTime = splineAnimate.NormalizedTime;
-    }
-
-    void SetTime()
-    {
-        splineAnimate.NormalizedTime = currentTime;
     }
 
     public void Jump()
     {
         if(!isGrounded) return;
 
-        rb.AddForce(new Vector3(0,jumpForce,0), ForceMode.Impulse);
+        rb.AddForce(Vector3.up * jumpForce * Time.fixedDeltaTime, ForceMode.VelocityChange);
         OnAir();
 
         Debug.Log("Jumping");
@@ -92,7 +66,7 @@ public class LocomotiveMoviment : MonoBehaviour
             //Fall
             if(!canFall) return;
 
-            rb.AddForce(new Vector3(0,fallForce,0), ForceMode.Impulse);
+            rb.AddForce(Physics.gravity * gravityForce * fallForce  * Time.fixedDeltaTime, ForceMode.VelocityChange);
 
             canFall = false;
 
@@ -102,26 +76,25 @@ public class LocomotiveMoviment : MonoBehaviour
 
     public void Move(bool right)
     {
-        // if(isGrounded) return;
-        // if(isChangingTrack) return;
+        if(isGrounded) return;
+        if(isChangingTrack) return;
         if(!locomotiveResources.RocketAvaliable()) return;
 
         if(right)
         {
             if(index == 2) return;
-            index++;
-            
+            direction = 1;
+            index++;        
             Debug.Log("Going Right");
         }
 
         else
         {
             if(index == 0) return;
+            direction = -1;
             index--;
             Debug.Log("Going Left");
         }
-
-        ChangeSpline();
 
         locomotiveResources.SetRocketValue(-1f);
 
@@ -137,8 +110,8 @@ public class LocomotiveMoviment : MonoBehaviour
 
         isNitro = true;
 
-        SetGhostSpeed(nitroBoost);
         speed *= nitroBoost;
+        maxSpeed *= nitroBoost;
 
         StartCoroutine("ActivateNitro");
 
@@ -182,24 +155,39 @@ public class LocomotiveMoviment : MonoBehaviour
 
     void FixedUpdate()
     {
-        // Vector3 newPosition = new Vector3(target.transform.position.x, transform.position.y, target.transform.position.z);
-        // rb.MovePosition(Vector3.MoveTowards(transform.position, newPosition, speed * nitroBoost * Time.deltaTime));
+        rb.maxLinearVelocity = maxSpeed;
+        
+        if(transform.position.y >= jumpMaxPoint.transform.position.y)
+        {
+            float pullStrenght = Mathf.Abs(Physics.gravity.y) * gravityForce * Time.fixedDeltaTime;
+            Vector3 pullForce = Vector3.Lerp(transform.position, Vector3.down, acceleration * Time.fixedDeltaTime);
+            rb.AddForce(pullForce * pullStrenght, ForceMode.VelocityChange);
+        }
 
-        Vector3 newDirection = direction.transform.position - transform.position;
-        newDirection = new Vector3(newDirection.x, 0, newDirection.z);
-        rb.MoveRotation(Quaternion.LookRotation(Vector3.RotateTowards(transform.forward, newDirection, speed * Time.deltaTime, 0.2f * Time.deltaTime)));
+        Vector3 next = Vector3.forward * speed * Time.fixedDeltaTime;
+        Vector3 current = new Vector3(0, 0, transform.position.z);
+        next = Vector3.Lerp(current, next, acceleration * Time.fixedDeltaTime);
+        rb.AddForce(next, ForceMode.VelocityChange);
+
     }
 
     IEnumerator ChangeTrack()
     {
         isChangingTrack = true;
 
-        target = ghosts[index];
-
         while(isChangingTrack)
         {
+            // Vector3 target = Vector3.right * speed * Time.fixedDeltaTime * direction;
+            // rb.AddForce(target, ForceMode.VelocityChange);
+            rb.MovePosition(new Vector3(points[index], transform.position.y, transform.position.z));
             Debug.Log("Changing Track");
-            yield return null;
+
+            if(transform.position.x >= points[index])
+            {
+                isChangingTrack = false;
+            }
+
+            yield return Time.fixedDeltaTime;
         }
 
         GetComponent<Animator>().SetBool("isTilting", false);
@@ -216,9 +204,8 @@ public class LocomotiveMoviment : MonoBehaviour
             yield return new WaitForSeconds(0.2f);
         }
 
-        //SetGhostSpeed(1/nitroBoost);
-        ChangeSpeed(1/nitroBoost);
         speed /= nitroBoost;
+        maxSpeed /= nitroBoost;
 
         yield return locomotiveResources.StartCoroutine("RecoverNitro");
 
@@ -240,22 +227,5 @@ public class LocomotiveMoviment : MonoBehaviour
         yield return locomotiveResources.StartCoroutine("RecoverDrift");
 
         isDrifting = false;
-    }
-
-    void SetGhostSpeed(float newSpeed)
-    {
-        for(int index = 0; index < ghosts.Count; index++)
-        {
-            ghosts[index].GetComponent<Ghost>().ChangeSpeed(newSpeed);
-        }
-    }
-
-    void ChangeSpline()
-    {
-        splineAnimate.Pause();
-        currentTime = splineAnimate.ElapsedTime;
-        splineAnimate.Container = splines[index].transform.GetComponent<SplineContainer>();
-        splineAnimate.ElapsedTime = currentTime;
-        splineAnimate.Play();
     }
 }
