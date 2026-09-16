@@ -27,6 +27,10 @@ public class LocomotiveMoviment : MonoBehaviour
     int index = 1;
     Rigidbody rb;
     LocomotiveResources locomotiveResources;
+    SplineAnimate splineAnimate; 
+    float currentTime;
+    public Transform direction;
+    public List<Transform> splines;
 
     void Awake()
     {
@@ -34,6 +38,31 @@ public class LocomotiveMoviment : MonoBehaviour
         locomotiveResources = GetComponent<LocomotiveResources>();
         target = ghosts[1];
         SetGhostSpeed(speed);
+    }
+
+    void Start()
+    {
+        splineAnimate = transform.parent.GetComponent<SplineAnimate>();
+        splineAnimate.Play();
+        splineAnimate.MaxSpeed = speed;
+    }
+
+        public void ChangeSpeed(float speedMultiplier)
+    {
+        GetTime();
+        speed *= speedMultiplier;
+        splineAnimate.MaxSpeed = speed;
+        SetTime();
+    }
+
+    void GetTime()
+    {
+        currentTime = splineAnimate.NormalizedTime;
+    }
+
+    void SetTime()
+    {
+        splineAnimate.NormalizedTime = currentTime;
     }
 
     public void Jump()
@@ -73,8 +102,8 @@ public class LocomotiveMoviment : MonoBehaviour
 
     public void Move(bool right)
     {
-        if(isGrounded) return;
-        if(isChangingTrack) return;
+        // if(isGrounded) return;
+        // if(isChangingTrack) return;
         if(!locomotiveResources.RocketAvaliable()) return;
 
         if(right)
@@ -91,6 +120,8 @@ public class LocomotiveMoviment : MonoBehaviour
             index--;
             Debug.Log("Going Left");
         }
+
+        ChangeSpline();
 
         locomotiveResources.SetRocketValue(-1f);
 
@@ -151,12 +182,12 @@ public class LocomotiveMoviment : MonoBehaviour
 
     void FixedUpdate()
     {
-        Vector3 newPosition = new Vector3(target.transform.position.x, transform.position.y, target.transform.position.z);
-        rb.MovePosition(Vector3.MoveTowards(transform.position, newPosition, speed * nitroBoost * Time.deltaTime));
+        // Vector3 newPosition = new Vector3(target.transform.position.x, transform.position.y, target.transform.position.z);
+        // rb.MovePosition(Vector3.MoveTowards(transform.position, newPosition, speed * nitroBoost * Time.deltaTime));
 
-        // Vector3 newDirection = target.transform.position - transform.position;
-        // newDirection = new Vector3(newDirection.x, 0, newDirection.z);
-        // rb.MoveRotation(Quaternion.LookRotation(Vector3.RotateTowards(transform.forward, newDirection, speed * Time.deltaTime, 0.5f * Time.deltaTime)));
+        Vector3 newDirection = direction.transform.position - transform.position;
+        newDirection = new Vector3(newDirection.x, 0, newDirection.z);
+        rb.MoveRotation(Quaternion.LookRotation(Vector3.RotateTowards(transform.forward, newDirection, speed * Time.deltaTime, 0.2f * Time.deltaTime)));
     }
 
     IEnumerator ChangeTrack()
@@ -185,7 +216,8 @@ public class LocomotiveMoviment : MonoBehaviour
             yield return new WaitForSeconds(0.2f);
         }
 
-        SetGhostSpeed(1/nitroBoost);
+        //SetGhostSpeed(1/nitroBoost);
+        ChangeSpeed(1/nitroBoost);
         speed /= nitroBoost;
 
         yield return locomotiveResources.StartCoroutine("RecoverNitro");
@@ -216,5 +248,14 @@ public class LocomotiveMoviment : MonoBehaviour
         {
             ghosts[index].GetComponent<Ghost>().ChangeSpeed(newSpeed);
         }
+    }
+
+    void ChangeSpline()
+    {
+        splineAnimate.Pause();
+        currentTime = splineAnimate.ElapsedTime;
+        splineAnimate.Container = splines[index].transform.GetComponent<SplineContainer>();
+        splineAnimate.ElapsedTime = currentTime;
+        splineAnimate.Play();
     }
 }

@@ -32,4 +32,9 @@ public class Ghost : MonoBehaviour
     {
         splineAnimate.NormalizedTime = currentTime;
     }
+
+    void Update()
+    {
+        Debug.Log(transform.name + " " + splineAnimate.NormalizedTime);
+    }
 }
